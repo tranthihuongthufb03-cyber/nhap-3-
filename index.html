@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="dashboard-version" content="3.0.0">
+<title>Dashboard Tầm Soát</title>
+<style>
+:root{
+  --bg:#07101d;--panel:#0d1828;--panel2:#101d30;--line:#21344e;
+  --text:#f6f8ff;--muted:#91a5bf;--cyan:#34d6ff;--green:#4ce0a1;
+  --violet:#9d8cff;--amber:#ffbd59;--pink:#ff729b;--red:#ff667d;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);
+background:radial-gradient(circle at 85% 0,rgba(52,214,255,.11),transparent 32rem),
+radial-gradient(circle at 0 28%,rgba(157,140,255,.08),transparent 28rem),var(--bg)}
+button,input,select{font:inherit}
+.shell{max-width:1600px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:16px}
+.eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);font-weight:850}
+h1{margin:7px 0;font-size:clamp(28px,3.4vw,48px);line-height:1.05}
+.subtitle{color:var(--muted);font-size:14px}
+.pill{padding:9px 13px;border:1px solid rgba(76,224,161,.28);background:rgba(76,224,161,.08);
+border-radius:999px;color:var(--green);font-size:12px;white-space:nowrap}
+.card{background:linear-gradient(180deg,rgba(16,29,48,.97),rgba(9,18,31,.97));
+border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 38px rgba(0,0,0,.2)}
+.sync{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 15px;margin-bottom:14px}
+.sync-left{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px;min-width:0}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px rgba(255,189,89,.5);flex:none}
+.dot.ok{background:var(--green);box-shadow:0 0 12px rgba(76,224,161,.5)}
+.dot.err{background:var(--red);box-shadow:0 0 12px rgba(255,102,125,.5)}
+button{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#173456;color:#fff;font-weight:800;cursor:pointer}
+button:hover{border-color:#4e709d}
+.filters{display:grid;grid-template-columns:repeat(6,minmax(135px,1fr));gap:10px;padding:14px;margin-bottom:14px}
+label{display:block;margin:0 0 6px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+input,select{width:100%;border:1px solid var(--line);border-radius:10px;background:#091321;color:var(--text);padding:10px 11px;outline:none}
+input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(52,214,255,.09)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.kpi{padding:16px;min-height:118px;position:relative;overflow:hidden}
+.kpi:after{content:"";position:absolute;width:115px;height:115px;border-radius:50%;right:-48px;top:-50px;background:var(--glow)}
+.k-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.k-value{font-size:clamp(25px,2.5vw,39px);font-weight:900;letter-spacing:-.04em;margin-top:10px}
+.k-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-bottom:14px}
+.grid.equal{grid-template-columns:1fr 1fr}
+.panel{padding:16px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.panel h2{font-size:15px;margin:0}
+.note{color:var(--muted);font-size:11px;margin-top:3px}
+.legend{display:flex;gap:13px;color:var(--muted);font-size:11px;flex-wrap:wrap}
+.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dot);margin-right:6px}
+canvas{display:block;width:100%;height:310px}
+.channel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.channel{padding:16px}
+.channel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.channel-title strong{font-size:15px}
+.channel-badge{font-size:10px;padding:5px 8px;border-radius:999px;background:#17263b;color:var(--cyan)}
+.channel-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:#091422;border:1px solid rgba(33,52,78,.75);border-radius:12px;padding:12px}
+.metric small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.metric b{display:block;font-size:20px;margin-top:6px}
+.table-wrap{overflow:auto;max-height:470px;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:10px 11px;border-bottom:1px solid rgba(33,52,78,.72);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#132239;color:#bdd0e8;font-size:10px;text-transform:uppercase;letter-spacing:.06em;z-index:1}
+.num{text-align:right}
+.rank{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#1a2d48;color:#c6efff;font-weight:850}
+.progress{height:6px;min-width:95px;background:#17263b;border-radius:999px;overflow:hidden}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:999px}
+.empty{display:grid;place-items:center;height:220px;color:var(--muted)}
+.footer{display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-size:11px;margin:16px 2px 4px}
+.tooltip{position:fixed;z-index:100;display:none;pointer-events:none;background:#06101d;border:1px solid #344e70;
+padding:8px 10px;border-radius:9px;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.warning{display:none;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(255,189,89,.35);
+background:rgba(255,189,89,.08);border-radius:12px;color:#ffd99a;font-size:12px;line-height:1.5}
+@media(max-width:1100px){.filters{grid-template-columns:repeat(3,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){.shell{padding:14px}.grid,.grid.equal,.channel-grid{grid-template-columns:1fr}header{display:block}.pill{display:inline-block;margin-top:12px}}
+@media(max-width:560px){.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr}.sync{align-items:flex-start;flex-direction:column}.sync button{width:100%}.footer{display:block}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div>
+    <div class="eyebrow">Digital performance report</div>
+    <h1>Dashboard Tầm Soát</h1>
+    <div class="subtitle">Lead → khách đã đến → doanh thu → hiệu suất quảng cáo</div>
+  </div>
+  <div class="pill" id="versionPill">● Live dashboard v3</div>
+</header>
+
+<section class="sync card">
+  <div class="sync-left">
+    <span class="dot" id="syncDot"></span>
+    <span id="syncText">Đang kết nối Google Sheet…</span>
+  </div>
+  <button id="refreshBtn">↻ Cập nhật dữ liệu</button>
+</section>
+
+<div class="warning" id="filterWarning">
+  Khi lọc theo nguồn, nhân viên hoặc chiến dịch, chi phí quảng cáo không thể phân bổ chính xác theo các bộ lọc này. Vì vậy ROAS và chi phí/lead sẽ tạm ẩn.
+</div>
+
+<section class="filters card">
+  <div><label>Từ ngày</label><input id="fromDate" type="date"></div>
+  <div><label>Đến ngày</label><input id="toDate" type="date"></div>
+  <div><label>Nguồn</label><select id="sourceFilter"></select></div>
+  <div><label>Nhân viên</label><select id="staffFilter"></select></div>
+  <div><label>Tìm chiến dịch</label><input id="campaignFilter" placeholder="Nhập tên campaign..."></div>
+  <div><label>Thao tác</label><button id="resetBtn">Đặt lại bộ lọc</button></div>
+</section>
+
+<section class="kpis">
+  <div class="kpi card" style="--glow:rgba(52,214,255,.20)"><div class="k-label">Tổng lead</div><div class="k-value" id="kLeads">—</div><div class="k-sub" id="kLeadSub"></div></div>
+  <div class="kpi card" style="--glow:rgba(76,224,161,.18)"><div class="k-label">Khách đã đến</div><div class="k-value" id="kArrivals">—</div><div class="k-sub">Số lượt trong cùng kỳ lọc</div></div>
+  <div class="kpi card" style="--glow:rgba(157,140,255,.20)"><div class="k-label">Tỷ lệ đến / lead</div><div class="k-value" id="kConversion">—</div><div class="k-sub">Cùng kỳ, không phải phân tích cohort</div></div>
+  <div class="kpi card" style="--glow:rgba(255,189,89,.18)"><div class="k-label">Doanh thu</div><div class="k-value" id="kRevenue">—</div><div class="k-sub" id="kRevenueSub"></div></div>
+  <div class="kpi card" style="--glow:rgba(255,114,155,.18)"><div class="k-label">Tổng chi phí Ads</div><div class="k-value" id="kSpend">—</div><div class="k-sub">Facebook + Google theo thời gian</div></div>
+  <div class="kpi card" style="--glow:rgba(76,224,161,.18)"><div class="k-label">ROAS</div><div class="k-value" id="kRoas">—</div><div class="k-sub">Doanh thu / tổng chi phí Ads</div></div>
+  <div class="kpi card" style="--glow:rgba(52,214,255,.18)"><div class="k-label">Chi phí / lead</div><div class="k-value" id="kCpl">—</div><div class="k-sub">Tổng Ads chia lead ghi nhận</div></div>
+  <div class="kpi card" style="--glow:rgba(157,140,255,.18)"><div class="k-label">Giá trị TB / lượt đến</div><div class="k-value" id="kAvg">—</div><div class="k-sub">Doanh thu chia lượt khách đã đến</div></div>
+</section>
+
+<section class="grid">
+  <div class="panel card">
+    <div class="panel-head">
+      <div><h2>Xu hướng Lead và khách đã đến</h2><div class="note">Tổng hợp theo tháng</div></div>
+      <div class="legend"><span style="--dot:var(--cyan)">Lead</span><span style="--dot:var(--green)">Đã đến</span></div>
+    </div>
+    <canvas id="funnelTrend"></canvas>
+  </div>
+  <div class="panel card">
+    <div class="panel-head"><div><h2>Cơ cấu nguồn Lead</h2><div class="note">Theo dữ liệu đã lọc</div></div></div>
+    <canvas id="sourceChart"></canvas>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="panel card">
+    <div class="panel-head">
+      <div><h2>Doanh thu và chi phí quảng cáo</h2><div class="note">Tổng hợp theo tháng</div></div>
+      <div class="legend"><span style="--dot:var(--amber)">Doanh thu</span><span style="--dot:var(--pink)">Chi phí Ads</span></div>
+    </div>
+    <canvas id="financialTrend"></canvas>
+  </div>
+  <div class="panel card">
+    <div class="panel-head"><div><h2>Doanh thu theo dịch vụ</h2><div class="note">Top dịch vụ trong kỳ</div></div></div>
+    <canvas id="serviceChart"></canvas>
+  </div>
+</section>
+
+<section class="channel-grid" style="margin-bottom:14px">
+  <div class="channel card">
+    <div class="channel-title"><strong>Facebook Ads</strong><span class="channel-badge">Theo ngày</span></div>
+    <div class="channel-metrics">
+      <div class="metric"><small>Chi phí</small><b id="fbSpend">—</b></div>
+      <div class="metric"><small>Tin nhắn</small><b id="fbMessages">—</b></div>
+      <div class="metric"><small>Lead</small><b id="fbLeads">—</b></div>
+      <div class="metric"><small>Chi phí / lead</small><b id="fbCpl">—</b></div>
+    </div>
+  </div>
+  <div class="channel card">
+    <div class="channel-title"><strong>Google Ads</strong><span class="channel-badge">Theo ngày</span></div>
+    <div class="channel-metrics">
+      <div class="metric"><small>Chi phí</small><b id="ggSpend">—</b></div>
+      <div class="metric"><small>Lượt nhấp</small><b id="ggClicks">—</b></div>
+      <div class="metric"><small>Chuyển đổi</small><b id="ggConv">—</b></div>
+      <div class="metric"><small>Chi phí / chuyển đổi</small><b id="ggCpa">—</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="grid equal">
+  <div class="panel card">
+    <div class="panel-head"><div><h2>Hiệu suất nhân viên</h2><div class="note">Xếp theo số Lead</div></div></div>
+    <canvas id="staffChart"></canvas>
+  </div>
+  <div class="panel card">
+    <div class="panel-head"><div><h2>Top chiến dịch</h2><div class="note">Lead, lượt đến và doanh thu</div></div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>#</th><th>Chiến dịch</th><th class="num">Lead</th><th class="num">Đã đến</th><th class="num">Doanh thu</th><th>Quy mô</th></tr></thead><tbody id="campaignBody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section class="panel card">
+  <div class="panel-head"><div><h2>Top mẫu quảng cáo</h2><div class="note">Xếp theo số Lead ghi nhận</div></div></div>
+  <div class="table-wrap">
+    <table><thead><tr><th>#</th><th>Mẫu quảng cáo</th><th class="num">Lead</th><th class="num">Đã đến</th><th class="num">Doanh thu</th></tr></thead><tbody id="adBody"></tbody></table>
+  </div>
+</section>
+
+<div class="footer">
+  <span>Không tải tên hoặc số điện thoại khách hàng lên dashboard.</span>
+  <span id="footerUpdate">Chưa đồng bộ</span>
+</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<script src="config.js"></script>
+<script>
+"use strict";
+let DATA={leads:[],arrivals:[],facebook:[],google:[]};
+const CFG=window.DASHBOARD_CONFIG||{};
+const API_URL=String(CFG.apiUrl||"").trim();
+const AUTO_MIN=Math.max(0,Number(CFG.autoRefreshMinutes||0));
+const $=s=>document.querySelector(s);
+const fmt=new Intl.NumberFormat("vi-VN");
+const money=n=>{
+  n=Number(n)||0;
+  if(Math.abs(n)>=1e9)return (n/1e9).toLocaleString("vi-VN",{maximumFractionDigits:2})+" tỷ";
+  if(Math.abs(n)>=1e6)return (n/1e6).toLocaleString("vi-VN",{maximumFractionDigits:1})+" tr";
+  return fmt.format(Math.round(n))+" đ";
+};
+const esc=s=>String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const short=(s,n=34)=>String(s||"").length>n?String(s).slice(0,n-1)+"…":String(s||"");
+const C={cyan:"#34d6ff",green:"#4ce0a1",violet:"#9d8cff",amber:"#ffbd59",pink:"#ff729b",grid:"#21344e",muted:"#91a5bf",text:"#f6f8ff"};
+
+function setStatus(type,text){
+  $("#syncDot").className="dot"+(type==="ok"?" ok":type==="err"?" err":"");
+  $("#syncText").textContent=text;
+}
+function tooltip(e,html){
+  const t=$("#tooltip");t.innerHTML=html;t.style.display="block";
+  t.style.left=Math.min(innerWidth-250,e.clientX+13)+"px";
+  t.style.top=(e.clientY+12)+"px";
+}
+function hideTooltip(){$("#tooltip").style.display="none"}
+function group(rows,key){
+  return rows.reduce((o,x)=>{const k=x[key]||"Không xác định";o[k]=(o[k]||0)+1;return o},{});
+}
+function sumBy(rows,key,value){
+  return rows.reduce((o,x)=>{const k=x[key]||"Không xác định";o[k]=(o[k]||0)+(Number(x[value])||0);return o},{});
+}
+function monthKey(d){return d?d.slice(0,7):""}
+function sum(rows,key){return rows.reduce((s,x)=>s+(Number(x[key])||0),0)}
+function dateIn(x,from,to){return (!from||x.d>=from)&&(!to||x.d<=to)}
+function setOptions(el,items,label){
+  const current=el.value;
+  el.innerHTML=`<option value="">Tất cả ${label}</option>`+[...items].sort((a,b)=>a.localeCompare(b,"vi")).map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");
+  if([...el.options].some(o=>o.value===current))el.value=current;
+}
+function currentFilters(){
+  return {
+    from:$("#fromDate").value,to:$("#toDate").value,
+    source:$("#sourceFilter").value,staff:$("#staffFilter").value,
+    campaign:$("#campaignFilter").value.trim().toLowerCase()
+  };
+}
+function filterBusiness(rows,f){
+  return rows.filter(x=>dateIn(x,f.from,f.to)&&(!f.source||x.s===f.source)&&(!f.staff||x.e===f.staff)&&(!f.campaign||(x.c||"").toLowerCase().includes(f.campaign)));
+}
+function fitCanvas(canvas,height){
+  const dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();
+  canvas.width=Math.max(300,Math.floor(rect.width*dpr));canvas.height=Math.floor(height*dpr);
+  const ctx=canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w:rect.width,h:height};
+}
+function lineChart(canvas,labels,series){
+  const {ctx,w,h}=fitCanvas(canvas,310),pad={l:52,r:18,t:24,b:48},cw=w-pad.l-pad.r,ch=h-pad.t-pad.b;
+  ctx.clearRect(0,0,w,h);
+  const max=Math.max(1,...series.flatMap(s=>s.values));
+  const top=max<=10?10:Math.ceil(max/5/Math.pow(10,Math.max(0,Math.floor(Math.log10(max/5)))))*5*Math.pow(10,Math.max(0,Math.floor(Math.log10(max/5))));
+  ctx.font="11px system-ui";ctx.textBaseline="middle";
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch*i/5,v=Math.round(top*(1-i/5));
+    ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+    ctx.fillStyle=C.muted;ctx.textAlign="right";ctx.fillText(fmt.format(v),pad.l-9,y);
+  }
+  const x=i=>labels.length===1?pad.l+cw/2:pad.l+cw*i/Math.max(1,labels.length-1);
+  const y=v=>pad.t+ch*(1-v/top);
+  labels.forEach((m,i)=>{ctx.fillStyle=C.muted;ctx.textAlign="center";ctx.fillText(m.slice(5)+"/"+m.slice(2,4),x(i),h-23)});
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color;ctx.lineWidth=2.5;ctx.beginPath();
+    s.values.forEach((v,i)=>i?ctx.lineTo(x(i),y(v)):ctx.moveTo(x(i),y(v)));ctx.stroke();
+    s.values.forEach((v,i)=>{ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x(i),y(v),3.7,0,Math.PI*2);ctx.fill()});
+  });
+  canvas._hits=labels.map((label,i)=>({x:x(i),label,values:series.map(s=>({name:s.name,value:s.values[i],format:s.format}))}));
+  canvas.onmousemove=e=>{
+    const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left;
+    if(!canvas._hits.length)return hideTooltip();
+    const hit=canvas._hits.reduce((p,c)=>Math.abs(c.x-mx)<Math.abs(p.x-mx)?c:p,canvas._hits[0]);
+    if(Math.abs(hit.x-mx)>28)return hideTooltip();
+    tooltip(e,`<b>${hit.label}</b><br>`+hit.values.map(v=>`${esc(v.name)}: ${v.format==="money"?money(v.value):fmt.format(Math.round(v.value||0))}`).join("<br>"));
+  };
+  canvas.onmouseleave=hideTooltip;
+}
+function donut(canvas,data){
+  const {ctx,w,h}=fitCanvas(canvas,310),entries=Object.entries(data).sort((a,b)=>b[1]-a[1]).slice(0,7),total=entries.reduce((s,x)=>s+x[1],0)||1;
+  ctx.clearRect(0,0,w,h);const cx=w*.38,cy=h*.49,r=Math.min(w,h)*.31,ri=r*.58;
+  const colors=[C.cyan,C.green,C.violet,C.amber,C.pink,"#5a8cff","#5eead4"];
+  let start=-Math.PI/2,arcs=[];
+  entries.forEach(([k,v],i)=>{const end=start+Math.PI*2*v/total;ctx.beginPath();ctx.arc(cx,cy,r,start,end);ctx.arc(cx,cy,ri,end,start,true);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();arcs.push({k,v,start,end});start=end});
+  ctx.fillStyle=C.text;ctx.textAlign="center";ctx.font="900 27px system-ui";ctx.fillText(fmt.format(total),cx,cy-2);
+  ctx.fillStyle=C.muted;ctx.font="11px system-ui";ctx.fillText("LEAD",cx,cy+19);
+  const lx=w*.70,ly=36;ctx.textAlign="left";
+  entries.forEach(([k,v],i)=>{ctx.fillStyle=colors[i%colors.length];ctx.fillRect(lx,ly+i*33,9,9);ctx.fillStyle=C.text;ctx.font="11px system-ui";ctx.fillText(short(k,18),lx+15,ly+5);ctx.fillStyle=C.muted;ctx.fillText((v/total*100).toFixed(1)+"%",lx+15,ly+20)});
+  canvas.onmousemove=e=>{
+    const rect=canvas.getBoundingClientRect(),dx=e.clientX-rect.left-cx,dy=e.clientY-rect.top-cy,rr=Math.hypot(dx,dy);
+    let ang=Math.atan2(dy,dx);if(ang< -Math.PI/2)ang+=Math.PI*2;
+    const hit=arcs.find(a=>ang>=a.start&&ang<=a.end);
+    if(hit&&rr>=ri&&rr<=r)tooltip(e,`<b>${esc(hit.k)}</b><br>${fmt.format(hit.v)} Lead · ${(hit.v/total*100).toFixed(1)}%`);
+    else hideTooltip();
+  };
+  canvas.onmouseleave=hideTooltip;
+}
+function hBars(canvas,items,opts={}){
+  const {ctx,w,h}=fitCanvas(canvas,310),left=opts.left||145,right=68,top=17,row=Math.max(26,(h-top-16)/Math.max(items.length,1)),max=Math.max(1,...items.map(x=>x.value));
+  ctx.clearRect(0,0,w,h);ctx.font="11px system-ui";
+  items.forEach((it,i)=>{
+    const y=top+i*row,bw=(w-left-right)*it.value/max;
+    ctx.fillStyle="#17263b";ctx.fillRect(left,y+5,w-left-right,12);
+    ctx.fillStyle=it.color||C.cyan;ctx.fillRect(left,y+5,bw,12);
+    ctx.fillStyle=C.text;ctx.textAlign="right";ctx.fillText(short(it.label,opts.labelLen||24),left-10,y+14);
+    ctx.fillStyle=C.muted;ctx.textAlign="left";ctx.fillText(it.display||fmt.format(it.value),left+bw+7,y+14);
+  });
+  canvas._bars=items.map((it,i)=>({it,y:top+i*row,h:row}));
+  canvas.onmousemove=e=>{
+    const rect=canvas.getBoundingClientRect(),y=e.clientY-rect.top,hit=canvas._bars.find(b=>y>=b.y&&y<=b.y+b.h);
+    if(hit)tooltip(e,hit.it.tip||`<b>${esc(hit.it.label)}</b><br>${hit.it.display||fmt.format(hit.it.value)}`);else hideTooltip();
+  };
+  canvas.onmouseleave=hideTooltip;
+}
+function buildTables(leads,arrivals){
+  const lc=group(leads,"c"),ac=group(arrivals,"c"),rc=sumBy(arrivals,"c","r");
+  let rows=[...new Set([...Object.keys(lc),...Object.keys(ac)])].filter(x=>x&&x!=="Không xác định")
+    .map(name=>({name,l:lc[name]||0,a:ac[name]||0,r:rc[name]||0})).sort((x,y)=>y.l-x.l).slice(0,20);
+  const max=Math.max(1,...rows.map(x=>x.l));
+  $("#campaignBody").innerHTML=rows.length?rows.map((x,i)=>`<tr><td><span class="rank">${i+1}</span></td><td title="${esc(x.name)}">${esc(short(x.name,58))}</td><td class="num">${fmt.format(x.l)}</td><td class="num">${fmt.format(x.a)}</td><td class="num">${money(x.r)}</td><td><div class="progress"><i style="width:${x.l/max*100}%"></i></div></td></tr>`).join(""):`<tr><td colspan="6"><div class="empty">Không có dữ liệu chiến dịch</div></td></tr>`;
+  const la=group(leads,"a"),aa=group(arrivals,"a"),ra=sumBy(arrivals,"a","r");
+  rows=[...new Set([...Object.keys(la),...Object.keys(aa)])].filter(x=>x&&x!=="Không xác định")
+    .map(name=>({name,l:la[name]||0,a:aa[name]||0,r:ra[name]||0})).sort((x,y)=>y.l-x.l).slice(0,25);
+  $("#adBody").innerHTML=rows.length?rows.map((x,i)=>`<tr><td><span class="rank">${i+1}</span></td><td title="${esc(x.name)}">${esc(short(x.name,75))}</td><td class="num">${fmt.format(x.l)}</td><td class="num">${fmt.format(x.a)}</td><td class="num">${money(x.r)}</td></tr>`).join(""):`<tr><td colspan="5"><div class="empty">Không có dữ liệu mẫu quảng cáo</div></td></tr>`;
+}
+function populateFilters(){
+  const dates=[...DATA.leads,...DATA.arrivals,...DATA.facebook,...DATA.google].map(x=>x.d).filter(Boolean).sort();
+  if(dates.length){
+    $("#fromDate").value=dates[0];
+    $("#toDate").value=dates.at(-1);
+  }
+  setOptions($("#sourceFilter"),new Set([...DATA.leads,...DATA.arrivals].map(x=>x.s).filter(Boolean)),"nguồn");
+  setOptions($("#staffFilter"),new Set([...DATA.leads,...DATA.arrivals].map(x=>x.e).filter(Boolean)),"nhân viên");
+}
+function render(){
+  const f=currentFilters();
+  const leads=filterBusiness(DATA.leads,f),arrivals=filterBusiness(DATA.arrivals,f);
+  const fb=DATA.facebook.filter(x=>dateIn(x,f.from,f.to));
+  const gg=DATA.google.filter(x=>dateIn(x,f.from,f.to));
+  const revenue=sum(arrivals,"r"),fbSpend=sum(fb,"spend"),ggSpend=sum(gg,"spend"),spend=fbSpend+ggSpend;
+  const attributionFiltered=Boolean(f.source||f.staff||f.campaign);
+  $("#filterWarning").style.display=attributionFiltered?"block":"none";
+  $("#kLeads").textContent=fmt.format(leads.length);
+  $("#kArrivals").textContent=fmt.format(arrivals.length);
+  $("#kConversion").textContent=(leads.length?arrivals.length/leads.length*100:0).toLocaleString("vi-VN",{maximumFractionDigits:1})+"%";
+  $("#kRevenue").textContent=money(revenue);
+  $("#kSpend").textContent=money(spend);
+  $("#kRoas").textContent=attributionFiltered?"—":(spend?revenue/spend:0).toLocaleString("vi-VN",{maximumFractionDigits:2});
+  $("#kCpl").textContent=attributionFiltered?"—":money(leads.length?spend/leads.length:0);
+  $("#kAvg").textContent=money(arrivals.length?revenue/arrivals.length:0);
+  const fbLeadCount=leads.filter(x=>(x.s||"").toUpperCase().includes("FACEBOOK")).length;
+  $("#kLeadSub").textContent=`${fmt.format(fbLeadCount)} Lead có nguồn Facebook`;
+  $("#kRevenueSub").textContent=`${money(leads.length?revenue/leads.length:0)} doanh thu / Lead`;
+  const months=[...new Set([...leads.map(x=>monthKey(x.d)),...arrivals.map(x=>monthKey(x.d)),...fb.map(x=>monthKey(x.d)),...gg.map(x=>monthKey(x.d))])].filter(Boolean).sort();
+  const leadMonth=group(leads.map(x=>({...x,m:monthKey(x.d)})),"m");
+  const arrivalMonth=group(arrivals.map(x=>({...x,m:monthKey(x.d)})),"m");
+  lineChart($("#funnelTrend"),months,[
+    {name:"Lead",color:C.cyan,values:months.map(m=>leadMonth[m]||0)},
+    {name:"Đã đến",color:C.green,values:months.map(m=>arrivalMonth[m]||0)}
+  ]);
+  donut($("#sourceChart"),group(leads,"s"));
+  const revMonth=sumBy(arrivals.map(x=>({...x,m:monthKey(x.d)})),"m","r");
+  const adRows=[...fb.map(x=>({m:monthKey(x.d),value:x.spend})),...gg.map(x=>({m:monthKey(x.d),value:x.spend}))];
+  const spendMonth=sumBy(adRows,"m","value");
+  lineChart($("#financialTrend"),months,[
+    {name:"Doanh thu",color:C.amber,format:"money",values:months.map(m=>revMonth[m]||0)},
+    {name:"Chi phí Ads",color:C.pink,format:"money",values:months.map(m=>spendMonth[m]||0)}
+  ]);
+  const serviceRevenue=sumBy(arrivals,"v","r"),serviceCount=group(arrivals,"v");
+  const services=Object.entries(serviceRevenue).filter(x=>x[0]&&x[0]!=="Không xác định").sort((a,b)=>b[1]-a[1]).slice(0,10)
+    .map(([name,value])=>({label:name,value,display:money(value),color:C.green,tip:`<b>${esc(name)}</b><br>Doanh thu: ${money(value)}<br>Lượt đến: ${fmt.format(serviceCount[name]||0)}`}));
+  hBars($("#serviceChart"),services,{left:178,labelLen:29});
+  const staffLead=group(leads,"e"),staffArrival=group(arrivals,"e"),staffRevenue=sumBy(arrivals,"e","r");
+  const staff=[...new Set([...Object.keys(staffLead),...Object.keys(staffArrival)])].filter(x=>x&&x!=="Không xác định")
+    .map(name=>({label:name,value:staffLead[name]||0,display:`${fmt.format(staffLead[name]||0)} Lead`,color:C.cyan,
+      tip:`<b>${esc(name)}</b><br>Lead: ${fmt.format(staffLead[name]||0)}<br>Đã đến: ${fmt.format(staffArrival[name]||0)}<br>Doanh thu: ${money(staffRevenue[name]||0)}`}))
+    .sort((a,b)=>b.value-a.value).slice(0,10);
+  hBars($("#staffChart"),staff,{left:120,labelLen:20});
+  const fbMessages=sum(fb,"messages"),fbLeads=sum(fb,"leads"),ggClicks=sum(gg,"clicks"),ggConv=sum(gg,"conversions");
+  $("#fbSpend").textContent=money(fbSpend);$("#fbMessages").textContent=fmt.format(fbMessages);$("#fbLeads").textContent=fmt.format(fbLeads);$("#fbCpl").textContent=money(fbLeads?fbSpend/fbLeads:0);
+  $("#ggSpend").textContent=money(ggSpend);$("#ggClicks").textContent=fmt.format(ggClicks);$("#ggConv").textContent=fmt.format(ggConv);$("#ggCpa").textContent=money(ggConv?ggSpend/ggConv:0);
+  buildTables(leads,arrivals);
+}
+function receiveData(payload){
+  if(!payload||payload.ok===false)throw new Error(payload&&payload.error?payload.error:"Apps Script trả về dữ liệu lỗi");
+  for(const key of ["leads","arrivals","facebook","google"]){
+    if(!Array.isArray(payload[key]))throw new Error(`Thiếu dữ liệu ${key}`);
+  }
+  DATA={leads:payload.leads,arrivals:payload.arrivals,facebook:payload.facebook,google:payload.google};
+  populateFilters();render();
+  const updated=payload.generatedAt?new Date(payload.generatedAt):new Date();
+  const text=`Đã đồng bộ ${fmt.format(DATA.leads.length)} Lead · ${fmt.format(DATA.arrivals.length)} lượt đến · ${updated.toLocaleString("vi-VN")}`;
+  setStatus("ok",text);$("#footerUpdate").textContent="Cập nhật: "+updated.toLocaleString("vi-VN");
+}
+function loadData(force=false){
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec/i.test(API_URL)){
+    setStatus("err","Chưa cấu hình đúng URL Apps Script trong config.js");return;
+  }
+  setStatus("","Đang tải dữ liệu mới nhất từ Google Sheet…");
+  const callback="dashboardCallback_"+Date.now();
+  let script=document.createElement("script"),done=false;
+  const cleanup=()=>{if(script)script.remove();delete window[callback]};
+  const timer=setTimeout(()=>{if(done)return;done=true;cleanup();setStatus("err","Quá thời gian kết nối Apps Script. Kiểm tra deployment và quyền Anyone.")},30000);
+  window[callback]=payload=>{
+    if(done)return;done=true;clearTimeout(timer);cleanup();
+    try{receiveData(payload)}catch(err){setStatus("err",err.message)}
+  };
+  const sep=API_URL.includes("?")?"&":"?";
+  script.src=API_URL+sep+"callback="+encodeURIComponent(callback)+"&refresh="+(force?"1":"0")+"&_="+Date.now();
+  script.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();setStatus("err","Không kết nối được Apps Script. Kiểm tra URL và quyền triển khai.")};
+  document.head.appendChild(script);
+}
+["fromDate","toDate","sourceFilter","staffFilter"].forEach(id=>$("#"+id).addEventListener("change",render));
+let debounce;$("#campaignFilter").addEventListener("input",()=>{clearTimeout(debounce);debounce=setTimeout(render,180)});
+$("#resetBtn").onclick=()=>{populateFilters();$("#sourceFilter").value="";$("#staffFilter").value="";$("#campaignFilter").value="";render()};
+$("#refreshBtn").onclick=()=>loadData(true);
+addEventListener("resize",()=>{clearTimeout(debounce);debounce=setTimeout(()=>{if(DATA.leads.length)render()},150)});
+loadData(false);
+if(AUTO_MIN>0)setInterval(()=>loadData(false),AUTO_MIN*60*1000);
+</script>
+</body>
+</html>
